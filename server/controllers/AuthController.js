@@ -71,11 +71,61 @@ export const login = async (req, res) => {
             id: user._id,
             email: user.email,
             profileSetup: user.profileSetup,
-            firstName:user.firstName,
-            lastName:user.lastName,
-            image:user.image,
-            color:user.color
+            firstName: user.firstName,
+            lastName: user.lastName,
+            image: user.image,
+            color: user.color
         },
     });
 
+}
+
+export const getUserInfo = async (req, res) => {
+    try {
+        const userData = await User.findById(req.userId);
+        if (!userData) {
+            return res.status(404).send("User not found")
+        }
+
+        return res.status(200).json({
+            id: userData._id,
+            email: userData.email,
+            profileSetup: userData.profileSetup,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            image: userData.image,
+            color: userData.color
+        })
+    } catch (error) {
+        console.log({ error })
+        return res.status(500).send("Internal Server error")
+    }
+}
+
+export const updateProfile = async (req, res) => {
+    try {
+        const { userId } = req;
+        const { firstName, lastName, color } = req.body;
+        if (!firstName || !lastName || color === undefined) {
+            return res.status(404).send("Firstname, lastname and color is required")
+        }
+
+        const userData = await User.findByIdAndUpdate(userId, {
+            firstName, lastName, color, profileSetup: true
+        }, { new: true, runValidators: true });
+
+        return res.status(200).json({
+            id: userData._id,
+            email: userData.email,
+            profileSetup: userData.profileSetup,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            image: userData.image,
+            color: userData.color
+        })
+
+    } catch (error) {
+        console.log({ error })
+        return res.status(500).send("Internal Server error")
+    }
 }
