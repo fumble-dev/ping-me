@@ -11,15 +11,16 @@ const port = process.env.PORT || 3000
 const databaseUrl = process.env.DATABASE_URL
 
 
-app.use(express.json({limit:"5mb"}))
+app.use(express.json({ limit: "5mb" }))
 app.use(cors({
-    origin:process.env.ORIGIN,
-    methods:["GET","POST","PUT","PATCH","DELETE"],
-    credentials:true
+    origin: process.env.ORIGIN,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true
 }))
 app.use(cookieParser())
+app.use("/uploads/profiles", express.static("uploads/profiles"))
 
-app.use("/api/auth",authRoutes)
+app.use("/api/auth", authRoutes)
 
 
 const server = app.listen(port, () => {
@@ -28,4 +29,4 @@ const server = app.listen(port, () => {
 
 mongoose.connect(databaseUrl)
     .then(() => console.log("DB Connection successful"))
-    .catch((err) => console.log("Error conncecting to DB",err))
+    .catch((err) => console.log("Error conncecting to DB", err))

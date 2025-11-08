@@ -1,14 +1,14 @@
 import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { useAppStore } from '@/store'
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { IoArrowBack } from 'react-icons/io5'
 import { FaPlus, FaTrash } from 'react-icons/fa'
 import { Input } from '@/components/ui/input'
-import { colors } from '@/lib/utils'
+import { colors, getColor } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import apiClient from '@/lib/api-client'
-import { UPDATE_PROFILE } from '@/lib/constants'
+import { ADD_PROFILE_IMAGE_ROUTE, HOST, REMOVE_PROFILE_IMAGE_ROUTE, UPDATE_PROFILE } from '@/lib/constants'
 import { useNavigate } from 'react-router-dom'
 
 const Profile = () => {
@@ -21,7 +21,20 @@ const Profile = () => {
   const [hovered, setHovered] = useState(false)
   const [selectedColor, setSelectedColor] = useState(0)
 
+  const fileInputRef = useRef(null)
+
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (userInfo.profileSetup) {
+      setFirstName(userInfo.firstName)
+      setLastName(userInfo.lastName)
+      setSelectedColor(userInfo.color)
+    }
+    if (userInfo.image) {
+      setImage(`${HOST}/${userInfo.image}`)
+    }
+  }, [userInfo])
 
   const validateProfile = () => {
     if (!firstName) {
@@ -38,7 +51,11 @@ const Profile = () => {
   const saveChanges = async () => {
     if (validateProfile()) {
       try {
-        const res = await apiClient.post(UPDATE_PROFILE, { firstName, lastName, color: selectedColor }, { withCredentials: true })
+        const res = await apiClient.post(
+          UPDATE_PROFILE,
+          { firstName, lastName, color: selectedColor },
+          { withCredentials: true }
+        )
         if (res.status === 200 && res.data) {
           setUserInfo({ ...res.data })
           toast.success("Profile Updated Successfully")
@@ -50,10 +67,57 @@ const Profile = () => {
     }
   }
 
+  const handleNavigate = () => {
+    if (userInfo.profileSetup) {
+      navigate("/chat")
+    } else {
+      toast.error("Please Setup Profile")
+    }
+  }
+
+  const handleFileInputClick = () => {
+    fileInputRef.current.click()
+  }
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setImage(reader.result)
+    }
+    reader.readAsDataURL(file)
+
+    if (file) {
+      const formData = new FormData();
+      formData.append("profile-image", file);
+      const res = await apiClient.post(ADD_PROFILE_IMAGE_ROUTE, formData, { withCredentials: true })
+      if (res.status === 200 && res.data.image) {
+        setUserInfo({ ...userInfo, image: res.data.image })
+        toast.success("Image Updated Successfully")
+      }
+
+    }
+  }
+
+  const handleDeleteImage = async () => {
+    try {
+      const res = await apiClient.delete(REMOVE_PROFILE_IMAGE_ROUTE, { withCredentials: true })
+      if (res.status === 200) {
+        setUserInfo({ ...userInfo, image: null })
+        toast.success("Image Removed Successfully")
+        setImage(null)
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+
   return (
     <div className='bg-[#1b1c24] h-screen flex items-center justify-center flex-col gap-10'>
       <div className="flex flex-col w-[80vw] md:w-max">
-        <div>
+        <div onClick={handleNavigate}>
           <IoArrowBack className='text-4xl lg:text-6xl text-white/90 cursor-pointer' />
         </div>
         <div className="grid grid-cols-2">
@@ -67,7 +131,7 @@ const Profile = () => {
                 image ? (
                   <AvatarImage src={image} alt="profile" className="object-cover w-full h-full bg-black" />
                 ) : (
-                  <div className='uppercase h-32 w-32 md:w-48 md:h-48 text-5xl border flex items-center justify-center rounded-full bg-[#712c4a57] text-black'>
+                  <div className={`uppercase h-32 w-32 md:w-48 md:h-48 text-5xl border  flex items-center justify-center rounded-full ${getColor(selectedColor)}`}>
                     {firstName ? firstName.split("").shift() : userInfo.email.split("").shift()}
                   </div>
                 )
@@ -75,13 +139,14 @@ const Profile = () => {
             </Avatar>
             {
               hovered && (
-                <div className='absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer text-white'>
+                <div className='absolute inset-0 bg-black/50 flex items-center justify-center ring-fuchsia-50  cursor-pointer rounded-full text-white' onClick={image ? handleDeleteImage : handleFileInputClick}>
                   {
-                    image ? <FaTrash className='text-white cursor-pointer text-3xl' /> : <FaPlus className='text-white cursor-pointer text-3xl' />
+                    image ? <FaTrash className='text-white cursor-pointer rounded-full text-3xl' /> : <FaPlus className='text-white rounded-full cursor-pointer text-3xl' />
                   }
                 </div>
               )
             }
+            <input type="file" accept='image/*' ref={fileInputRef} className='hidden' onChange={handleImageChange} name='profile-image' />
           </div>
           <div className='flex min-w-32 md:min-w-64 flex-col gap-5 text-white items-center justify-center '>
             <div className='w-full'>
@@ -97,7 +162,7 @@ const Profile = () => {
               <Input
                 placeholder="First Name"
                 type="text"
-                value={userInfo.firstName}
+                value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 className="rounded-lg p-6 bg-[#2c2e3b] border-none"
               />
@@ -106,7 +171,7 @@ const Profile = () => {
               <Input
                 placeholder="Last Name"
                 type="text"
-                value={userInfo.lastName}
+                value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 className="rounded-lg p-6 bg-[#2c2e3b] border-none"
               />
