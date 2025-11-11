@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import mongoose from 'mongoose'
 import authRoutes from './routes/AuthRoutes.js'
+import contactsRoutes from './routes/contactsRoutes.js'
 
 
 const app = express()
@@ -21,6 +22,7 @@ app.use(cookieParser())
 app.use("/uploads/profiles", express.static("uploads/profiles"))
 
 app.use("/api/auth", authRoutes)
+app.use("/api/contacts", contactsRoutes)
 
 
 const server = app.listen(port, () => {
